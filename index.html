@@ -41,6 +41,11 @@
     <header class="sticky top-0 z-30 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 transition-all">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
             <div class="flex items-center space-x-3">
+                <!-- Botão Hambúrguer -->
+                <button onclick="toggleMenu()" class="p-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-700/60 transition" title="Open Menu">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
+                </button>
+
                 <div class="p-2.5 bg-indigo-600/20 text-indigo-400 rounded-xl border border-indigo-500/30">
                     <i data-lucide="cat" class="w-6 h-6"></i>
                 </div>
@@ -57,6 +62,38 @@
             </div>
         </div>
     </header>
+
+    <!-- MENU LATERAL / GAVETA (Sidebar) -->
+    <div id="menu-backdrop" onclick="toggleMenu()" class="fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-sm hidden transition-opacity"></div>
+    <div id="side-menu" class="fixed top-0 left-0 bottom-0 z-50 w-72 bg-slate-900 border-r border-slate-800 p-6 flex flex-col justify-between transform -translate-x-full transition-transform duration-300 ease-in-out shadow-2xl">
+        <div>
+            <div class="flex items-center justify-between pb-6 border-b border-slate-800">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 bg-indigo-600/20 text-indigo-400 rounded-lg border border-indigo-500/30">
+                        <i data-lucide="compass" class="w-5 h-5"></i>
+                    </div>
+                    <span class="font-bold text-lg text-white">Navigation</span>
+                </div>
+                <button onclick="toggleMenu()" class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <nav class="mt-6 space-y-2">
+                <button onclick="toggleMenu()" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/80 transition font-medium text-sm">
+                    <i data-lucide="image" class="w-5 h-5 text-indigo-400"></i>
+                    <span>Gallery View</span>
+                </button>
+                <button onclick="openCatGame()" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/80 transition font-medium text-sm">
+                    <i data-lucide="gamepad-2" class="w-5 h-5 text-amber-400"></i>
+                    <span>Cat Sweeper Arcade</span>
+                </button>
+            </nav>
+        </div>
+        <div class="pt-6 border-t border-slate-800 text-xs text-slate-500 text-center">
+            <p>Kabisapp Menu v2.6</p>
+        </div>
+    </div>
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
@@ -216,8 +253,30 @@
                 galleryGrid.appendChild(card);
             });
 
-            // Re-initialize Lucide icons
             lucide.createIcons();
+        }
+
+        // Função do Menu Lateral Hambúrguer
+        function toggleMenu() {
+            const menu = document.getElementById('side-menu');
+            const backdrop = document.getElementById('menu-backdrop');
+            const isOpen = menu.classList.contains('translate-x-0');
+
+            if (isOpen) {
+                menu.classList.remove('translate-x-0');
+                menu.classList.add('-translate-x-full');
+                backdrop.classList.add('hidden');
+            } else {
+                menu.classList.remove('-translate-x-full');
+                menu.classList.add('translate-x-0');
+                backdrop.classList.remove('hidden');
+            }
+        }
+
+        // Redireciona para o arquivo separado do Cat Sweeper
+        function openCatGame() {
+            toggleMenu();
+            window.location.href = 'catsweeper.html';
         }
 
         // Open Lightbox
@@ -228,7 +287,7 @@
             setTimeout(() => {
                 lightbox.classList.remove('opacity-0');
             }, 10);
-            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+            document.body.style.overflow = 'hidden';
         }
 
         // Close Lightbox
@@ -295,7 +354,7 @@
             }
         }
 
-        // Keyboard Shortcuts (Arrow keys & Esc)
+        // Keyboard Shortcuts
         document.addEventListener('keydown', (e) => {
             if (lightbox.classList.contains('hidden')) return;
             
