@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exclusive Gallery</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        .gallery-card {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .gallery-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-indigo-500 selection:text-white custom-scrollbar">
+
+    <!-- Header / Navbar -->
+    <header class="sticky top-0 z-30 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 transition-all">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="p-2.5 bg-indigo-600/20 text-indigo-400 rounded-xl border border-indigo-500/30">
+                    <i data-lucide="cat" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-white tracking-tight">Exclusive Gallery</h1>
+                    <p class="text-xs text-slate-400">Private Photo Collection</p>
+                </div>
+            </div>
+
+            <!-- Stats Badge -->
+            <div class="flex items-center bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700/60 text-xs text-slate-300 space-x-2">
+                <i data-lucide="image" class="w-4 h-4 text-indigo-400"></i>
+                <span id="photo-count" class="font-medium text-white">4 Photos</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+        <!-- Gallery Header Title & Filters -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div>
+                <h2 class="text-2xl font-bold text-slate-100">Registered Photos</h2>
+                <p class="text-slate-400 text-sm mt-1">Click on any photo to view in high resolution.</p>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <button onclick="toggleLayout('grid')" id="btn-grid" class="p-2 bg-indigo-600 text-white rounded-lg transition hover:bg-indigo-500 shadow-lg shadow-indigo-600/20" title="Grid view">
+                    <i data-lucide="grid" class="w-5 h-5"></i>
+                </button>
+                <button onclick="toggleLayout('large')" id="btn-large" class="p-2 bg-slate-800 text-slate-400 hover:text-white rounded-lg transition hover:bg-slate-700" title="Large grid view">
+                    <i data-lucide="layout-grid" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Photo Grid Container -->
+        <div id="gallery-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Dynamic cards will be rendered here -->
+        </div>
+    </main>
+
+    <!-- Lightbox Modal -->
+    <div id="lightbox" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl hidden flex-col justify-between transition-opacity duration-300 opacity-0">
+        <!-- Lightbox Header -->
+        <div class="p-4 flex items-center justify-between bg-slate-900/50 border-b border-slate-800/50">
+            <div class="flex items-center space-x-3">
+                <span id="lightbox-index" class="text-xs font-mono bg-slate-800 text-indigo-400 px-2.5 py-1 rounded-md border border-slate-700">1 / 4</span>
+                <span id="lightbox-title" class="text-sm font-medium text-slate-200 truncate max-w-xs sm:max-w-md">Photo</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="zoomImage()" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition" title="Zoom">
+                    <i data-lucide="zoom-in" class="w-5 h-5"></i>
+                </button>
+                <button onclick="closeLightbox()" class="p-2 text-slate-400 hover:text-white hover:bg-rose-500/20 hover:text-rose-400 rounded-lg transition" title="Close (Esc)">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Lightbox Body -->
+        <div class="relative flex-1 flex items-center justify-center p-4 sm:p-8 overflow-hidden">
+            <!-- Navigation Buttons -->
+            <button onclick="prevImage()" class="absolute left-4 z-10 p-3 text-white bg-slate-900/60 hover:bg-indigo-600 rounded-full border border-slate-700/50 backdrop-blur-md transition-all transform hover:scale-105 shadow-xl" title="Previous photo">
+                <i data-lucide="chevron-left" class="w-6 h-6"></i>
+            </button>
+
+            <!-- Image Container -->
+            <div class="relative max-w-full max-h-full flex items-center justify-center overflow-hidden rounded-xl">
+                <img id="lightbox-img" src="" alt="" class="max-h-[80vh] max-w-full object-contain rounded-lg transition-transform duration-300 ease-out shadow-2xl">
+            </div>
+
+            <button onclick="nextImage()" class="absolute right-4 z-10 p-3 text-white bg-slate-900/60 hover:bg-indigo-600 rounded-full border border-slate-700/50 backdrop-blur-md transition-all transform hover:scale-105 shadow-xl" title="Next photo">
+                <i data-lucide="chevron-right" class="w-6 h-6"></i>
+            </button>
+        </div>
+
+        <!-- Lightbox Footer / Caption -->
+        <div class="p-4 bg-slate-900/50 border-t border-slate-800/50 text-center">
+            <p id="lightbox-desc" class="text-sm text-slate-300 max-w-2xl mx-auto"></p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 border-t border-slate-800 py-6 mt-12">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
+            <p>Custom Gallery Web App • Dynamically updated with your photos</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Array containing uploaded photos data with exact InShot filenames
+        const photos = [
+            {
+                id: 1,
+                url: 'InShot_20261025_140859693.jpg',
+                title: 'Thoughtful Kitten',
+                description: 'Striped kitten sitting on the rug with a curious and attentive expression.',
+                date: 'Recent'
+            },
+            {
+                id: 2,
+                url: 'InShot_20261025_140816368.jpg',
+                title: 'Charming Meow',
+                description: 'Tiny kitten meowing on top of the orange surface.',
+                date: 'Recent'
+            },
+            {
+                id: 3,
+                url: 'InShot_20261025_140741534.jpg',
+                title: 'Close-Up Portrait',
+                description: 'Beautiful close-up shot of the kitten looking directly at the camera with striking eyes.',
+                date: 'Recent'
+            },
+            {
+                id: 4,
+                url: 'InShot_20261025_140712984.jpg',
+                title: 'Walk in the Grass',
+                description: 'Kitten cheerfully walking across the green lawn.',
+                date: 'Recent'
+            }
+        ];
+
+        let currentIndex = 0;
+        let isZoomed = false;
+
+        // DOM Elements
+        const galleryGrid = document.getElementById('gallery-grid');
+        const photoCount = document.getElementById('photo-count');
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightbox-img');
+        const lightboxTitle = document.getElementById('lightbox-title');
+        const lightboxDesc = document.getElementById('lightbox-desc');
+        const lightboxIndex = document.getElementById('lightbox-index');
+
+        // Render gallery photos
+        function renderGallery() {
+            galleryGrid.innerHTML = '';
+            photoCount.textContent = `${photos.length} Photos`;
+
+            photos.forEach((photo, index) => {
+                const card = document.createElement('div');
+                card.className = 'gallery-card bg-slate-800/70 border border-slate-700/50 rounded-2xl overflow-hidden cursor-pointer group flex flex-col justify-between';
+                card.onclick = () => openLightbox(index);
+
+                card.innerHTML = `
+                    <div class="relative aspect-square overflow-hidden bg-slate-900">
+                        <img 
+                            src="${photo.url}" 
+                            alt="${photo.title}" 
+                            class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            loading="lazy"
+                            onerror="this.src='https://placehold.co/600x600/1e293b/f8fafc?text=Photo+Error'"
+                        />
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                            <span class="inline-flex items-center text-xs text-indigo-300 font-medium bg-indigo-950/80 border border-indigo-800/50 px-2.5 py-1 rounded-full">
+                                <i data-lucide="maximize-2" class="w-3 h-3 mr-1"></i> Expand
+                            </span>
+                        </div>
+                    </div>
+                    <div class="p-4 flex flex-col justify-between flex-grow">
+                        <div>
+                            <h3 class="font-semibold text-slate-100 group-hover:text-indigo-400 transition-colors">${photo.title}</h3>
+                            <p class="text-xs text-slate-400 mt-1 line-clamp-2">${photo.description}</p>
+                        </div>
+                        <div class="mt-3 pt-2 border-t border-slate-700/40 flex justify-between items-center text-[10px] text-slate-500">
+                            <span>Exclusive</span>
+                            <span>${photo.date}</span>
+                        </div>
+                    </div>
+                `;
+                galleryGrid.appendChild(card);
+            });
+
+            // Re-initialize Lucide icons
+            lucide.createIcons();
+        }
+
+        // Open Lightbox
+        function openLightbox(index) {
+            currentIndex = index;
+            updateLightboxContent();
+            lightbox.classList.remove('hidden');
+            setTimeout(() => {
+                lightbox.classList.remove('opacity-0');
+            }, 10);
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+
+        // Close Lightbox
+        function closeLightbox() {
+            lightbox.classList.add('opacity-0');
+            setTimeout(() => {
+                lightbox.classList.add('hidden');
+                resetZoom();
+            }, 300);
+            document.body.style.overflow = 'auto';
+        }
+
+        // Update Lightbox Content
+        function updateLightboxContent() {
+            const photo = photos[currentIndex];
+            lightboxImg.src = photo.url;
+            lightboxTitle.textContent = photo.title;
+            lightboxDesc.textContent = photo.description;
+            lightboxIndex.textContent = `${currentIndex + 1} / ${photos.length}`;
+            resetZoom();
+        }
+
+        // Lightbox Navigation
+        function nextImage() {
+            currentIndex = (currentIndex + 1) % photos.length;
+            updateLightboxContent();
+        }
+
+        function prevImage() {
+            currentIndex = (currentIndex - 1 + photos.length) % photos.length;
+            updateLightboxContent();
+        }
+
+        // Zoom Function
+        function zoomImage() {
+            isZoomed = !isZoomed;
+            if (isZoomed) {
+                lightboxImg.style.transform = 'scale(1.7)';
+                lightboxImg.style.cursor = 'zoom-out';
+            } else {
+                resetZoom();
+            }
+        }
+
+        function resetZoom() {
+            isZoomed = false;
+            lightboxImg.style.transform = 'scale(1)';
+            lightboxImg.style.cursor = 'zoom-in';
+        }
+
+        // Toggle Grid Layout
+        function toggleLayout(type) {
+            const btnGrid = document.getElementById('btn-grid');
+            const btnLarge = document.getElementById('btn-large');
+
+            if (type === 'large') {
+                galleryGrid.className = 'grid grid-cols-1 sm:grid-cols-2 gap-8';
+                btnLarge.className = 'p-2 bg-indigo-600 text-white rounded-lg transition shadow-lg shadow-indigo-600/20';
+                btnGrid.className = 'p-2 bg-slate-800 text-slate-400 hover:text-white rounded-lg transition hover:bg-slate-700';
+            } else {
+                galleryGrid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6';
+                btnGrid.className = 'p-2 bg-indigo-600 text-white rounded-lg transition shadow-lg shadow-indigo-600/20';
+                btnLarge.className = 'p-2 bg-slate-800 text-slate-400 hover:text-white rounded-lg transition hover:bg-slate-700';
+            }
+        }
+
+        // Keyboard Shortcuts (Arrow keys & Esc)
+        document.addEventListener('keydown', (e) => {
+            if (lightbox.classList.contains('hidden')) return;
+            
+            if (e.key === 'Escape') closeLightbox();
+            if (e.key === 'ArrowRight') nextImage();
+            if (e.key === 'ArrowLeft') prevImage();
+        });
+
+        // Initialize Application
+        window.onload = () => {
+            renderGallery();
+            lucide.createIcons();
+        };
+    </script>
+</body>
+</html>
