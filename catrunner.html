@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cat Runner Arcade</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #090d16;
+            color: #f8fafc;
+            touch-action: manipulation;
+            overflow: hidden;
+        }
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between select-none overflow-hidden relative">
+
+    <!-- Header Flutuante Redesenhado e Organizado -->
+    <header class="absolute top-0 left-0 right-0 z-30 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 shadow-lg">
+        <div class="max-w-7xl mx-auto px-3 py-2.5 flex items-center justify-between gap-2">
+            
+            <!-- Lado Esquerdo: Voltar, Ícone e Título/Bioma -->
+            <div class="flex items-center space-x-2.5">
+                <button onclick="window.location.href='index.html'" class="p-2 bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl border border-slate-700/60 transition shadow-sm" title="Back to Gallery">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                </button>
+                <div class="p-2 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
+                    <i data-lucide="zap" class="w-4 h-4"></i>
+                </div>
+                <div class="leading-tight">
+                    <h1 class="text-xs font-bold text-white tracking-tight">Cat Runner</h1>
+                    <p class="text-[9px] text-slate-400 font-medium" id="biome-label">Night Mountains 🏔️</p>
+                </div>
+            </div>
+
+            <!-- Centro: Badge do God Mode (Ajustado para não vazar para fora) -->
+            <div id="dev-mode-badge" class="hidden bg-purple-950/85 border border-purple-500/60 px-3 py-1 rounded-xl shadow-md animate-bounce flex items-center space-x-1">
+                <span class="text-[10px]">👑</span>
+                <span class="text-[9px] font-extrabold text-purple-300 tracking-wider uppercase">GOD MODE</span>
+            </div>
+
+            <!-- Timer de Imunidade (Borboleta) -->
+            <div id="shield-timer-container" class="hidden flex items-center space-x-1 bg-amber-500/20 border border-amber-500/40 px-2.5 py-1 rounded-xl animate-pulse">
+                <span class="text-[10px]">🦋</span>
+                <span class="text-[10px] font-bold text-amber-400 uppercase"><strong id="shield-seconds">6.0</strong>s</span>
+            </div>
+
+            <!-- Lado Direito: Placar Compacto e Elegante -->
+            <div class="flex items-center space-x-2">
+                <div class="bg-slate-900/90 border border-slate-800/80 px-2.5 py-1 rounded-xl text-right">
+                    <span class="text-[8px] text-slate-400 uppercase block tracking-wider font-semibold">Score</span>
+                    <strong id="score" class="text-amber-400 text-xs font-bold">0</strong>
+                </div>
+                <div class="bg-slate-900/90 border border-slate-800/80 px-2.5 py-1 rounded-xl text-right">
+                    <span class="text-[8px] text-slate-400 uppercase block tracking-wider font-semibold">Best</span>
+                    <strong id="high-score" class="text-emerald-400 text-xs font-bold">0</strong>
+                </div>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- Canvas em Tela Inteira -->
+    <main class="relative w-full h-full flex-grow overflow-hidden">
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- Overlay de Inicio / Game Over -->
+        <div id="overlay" class="absolute inset-0 z-40 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
+            <div class="text-6xl mb-3 animate-bounce" id="overlay-icon">🐱</div>
+            <h2 id="overlay-title" class="text-2xl font-bold text-amber-400 mb-2">CAT RUNNER</h2>
+            <p id="overlay-subtitle" class="text-xs text-slate-300 mb-6 leading-relaxed max-w-xs">
+                Tap <b>ANYWHERE</b> to JUMP!<br><br>
+                Travel across evolving worlds: Desert 🏜️, Snow ❄️ & English Village 🏰!
+            </p>
+            <button id="start-btn" class="py-4 px-8 bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold rounded-2xl text-sm transition transform active:scale-95 shadow-xl shadow-amber-500/20">
+                START RUN
+            </button>
+        </div>
+    </main>
+
+    <!-- Lógica do Jogo -->
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const overlay = document.getElementById('overlay');
+        const overlayTitle = document.getElementById('overlay-title');
+        const overlaySubtitle = document.getElementById('overlay-subtitle');
+        const overlayIcon = document.getElementById('overlay-icon');
+        const startBtn = document.getElementById('start-btn');
+        const shieldContainer = document.getElementById('shield-timer-container');
+        const shieldSecondsEl = document.getElementById('shield-seconds');
+        const biomeLabel = document.getElementById('biome-label');
+        const devModeBadge = document.getElementById('dev-mode-badge');
+
+        let GROUND_Y = 0;
+        let isRunning = false;
+        let canRestart = true;
+        let score = 0;
+        let highScore = parseInt(localStorage.getItem('cat_runner_high_score') || '0', 10);
+        
+        let gameSpeed = 6.5;
+        const initialSpeed = 6.5;
+        const maxSpeed = 16.5;
+        let frameCount = 0;
+
+        let mountainOffset = 0;
+        let cloudOffset = 0;
+        let groundDecorationOffset = 0;
+        let stars = [];
+        let snowFlakes = [];
+
+        let isInvincible = false;
+        let shieldTimer = 0;
+        
+        // DEV MODE GLOBAL (30 toques rápidos)
+        let devGodMode = false;
+        let globalTapCount = 0;
+        let globalTapTimer = null;
+
+        function checkGlobalDevTap() {
+            if (isRunning) return;
+
+            globalTapCount++;
+            clearTimeout(globalTapTimer);
+
+            if (globalTapCount >= 30) {
+                devGodMode = !devGodMode;
+                globalTapCount = 0;
+                if (devGodMode) {
+                    devModeBadge.classList.remove('hidden');
+                    isInvincible = true;
+                    shieldTimer = 9999999;
+                } else {
+                    devModeBadge.classList.add('hidden');
+                    isInvincible = false;
+                    shieldTimer = 0;
+                }
+            } else {
+                globalTapTimer = setTimeout(() => {
+                    globalTapCount = 0;
+                }, 3500);
+            }
+        }
+
+        document.getElementById('high-score').innerText = highScore;
+
+        function generateStarsAndSnow() {
+            stars = [];
+            snowFlakes = [];
+            for (let i = 0; i < 45; i++) {
+                stars.push({
+                    x: Math.random() * window.innerWidth,
+                    y: Math.random() * (window.innerHeight * 0.4),
+                    size: Math.random() < 0.2 ? 3 : 1,
+                    alpha: Math.random() * 0.8 + 0.2
+                });
+            }
+            for (let i = 0; i < 50; i++) {
+                snowFlakes.push({
+                    x: Math.random() * window.innerWidth,
+                    y: Math.random() * window.innerHeight,
+                    size: Math.random() * 2.5 + 1,
+                    speedY: Math.random() * 1.5 + 0.8,
+                    speedX: Math.random() * 1 - 0.5
+                });
+            }
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            GROUND_Y = Math.floor(canvas.height / 2);
+            generateStarsAndSnow();
+            if (!isRunning) {
+                drawEnvironment();
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        const cat = {
+            x: 60,
+            y: 0,
+            width: 40,
+            height: 40,
+            vy: 0,
+            gravity: 0.72,
+            jumpPower: -13.0,
+            isGrounded: true,
+            emoji: '🐱',
+            
+            jump() {
+                if (this.isGrounded) {
+                    this.vy = this.jumpPower;
+                    this.isGrounded = false;
+                }
+            },
+
+            update() {
+                this.vy += this.gravity;
+                this.y += this.vy;
+
+                if (this.y >= GROUND_Y - this.height) {
+                    this.y = GROUND_Y - this.height;
+                    this.vy = 0;
+                    this.isGrounded = true;
+                }
+            },
+
+            draw() {
+                ctx.save();
+                if (isInvincible || devGodMode) {
+                    ctx.shadowColor = devGodMode ? '#a855f7' : '#fbbf24';
+                    ctx.shadowBlur = 18;
+                }
+                ctx.font = '36px sans-serif';
+                ctx.fillText(this.emoji, this.x, this.y + 32);
+                ctx.restore();
+            }
+        };
+
+        let obstacles = [];
+        let butterflies = [];
+        function spawnEntity() {
+            frameCount++;
+            
+            const spawnInterval = Math.max(28, Math.floor(90 - (gameSpeed * 3.8)));
+            if (frameCount % spawnInterval === 0) {
+                const randType = Math.random();
+                
+                if (randType < 0.22) {
+                    obstacles.push({
+                        x: canvas.width + 30,
+                        y: GROUND_Y - 75,
+                        width: 35,
+                        height: 35,
+                        isDoubleAerial: false,
+                        emoji: '🦅',
+                        hit: false
+                    });
+                } else if (randType < 0.42) {
+                    obstacles.push({
+                        x: canvas.width + 30,
+                        y: GROUND_Y - 110,
+                        width: 40,
+                        height: 75,
+                        isDoubleAerial: true,
+                        emoji: '🦅',
+                        hit: false
+                    });
+                } else if (randType < 0.60) {
+                    obstacles.push({
+                        x: canvas.width + 30,
+                        y: GROUND_Y - 80,
+                        width: 35,
+                        height: 35,
+                        isDoubleAerial: false,
+                        emoji: '🛸',
+                        hit: false
+                    });
+                } else if (randType < 0.82) {
+                    obstacles.push({
+                        x: canvas.width + 30,
+                        y: GROUND_Y - 35,
+                        width: 35,
+                        height: 35,
+                        isDoubleAerial: false,
+                        emoji: '🐕',
+                        hit: false
+                    });
+                } else {
+                    obstacles.push({
+                        x: canvas.width + 30,
+                        y: GROUND_Y - 35,
+                        width: 60,
+                        height: 35,
+                        isDoubleAerial: false,
+                        emoji: '🐕🐕',
+                        hit: false
+                    });
+                }
+
+                if (Math.random() < 0.05 && butterflies.length === 0) {
+                    const safeHeight = Math.random() < 0.5 ? GROUND_Y - 45 : GROUND_Y - 95;
+                    butterflies.push({
+                        x: canvas.width + 30,
+                        y: safeHeight,
+                        width: 30,
+                        height: 30,
+                        emoji: '🦋',
+                        collected: false
+                    });
+                }
+            }
+        }
+
+        function updateEntities(deltaTime) {
+            spawnEntity();
+
+            if (gameSpeed < maxSpeed) {
+                gameSpeed += 0.0038;
+            }
+
+            for (let i = butterflies.length - 1; i >= 0; i--) {
+                const b = butterflies[i];
+                b.x -= gameSpeed;
+
+                ctx.font = '28px sans-serif';
+                ctx.fillText(b.emoji, b.x, b.y + 25);
+
+                if (
+                    !b.collected &&
+                    cat.x < b.x + b.width - 5 &&
+                    cat.x + cat.width - 5 > b.x &&
+                    cat.y < b.y + b.height - 5 &&
+                    cat.y + cat.height - 5 > b.y
+                ) {
+                    b.collected = true;
+                    butterflies.splice(i, 1);
+                    
+                    if (!devGodMode) {
+                        isInvincible = true;
+                        shieldTimer = 6000;
+                        shieldContainer.classList.remove('hidden');
+                    }
+                    score += 50;
+                    document.getElementById('score').innerText = score;
+                    continue;
+                }
+
+                if (b.x < -40) butterflies.splice(i, 1);
+            }
+
+            if (isInvincible && !devGodMode) {
+                shieldTimer -= deltaTime;
+                shieldSecondsEl.innerText = Math.max(0, (shieldTimer / 1000)).toFixed(1);
+
+                if (shieldTimer <= 0) {
+                    isInvincible = false;
+                    shieldContainer.classList.add('hidden');
+                }
+            }
+
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                const obs = obstacles[i];
+                obs.x -= gameSpeed;
+
+                if (obs.isDoubleAerial) {
+                    ctx.font = '32px sans-serif';
+                    ctx.fillText('🦅', obs.x, obs.y + 30);
+                    ctx.fillText('🦅', obs.x + 8, obs.y + 65);
+                } else {
+                    ctx.font = obs.emoji.length > 2 ? '26px sans-serif' : '34px sans-serif';
+                    ctx.fillText(obs.emoji, obs.x, obs.y + 30);
+                }
+
+                if (
+                    !obs.hit &&
+                    cat.x < obs.x + obs.width - 8 &&
+                    cat.x + cat.width - 8 > obs.x &&
+                    cat.y < obs.y + obs.height - 8 &&
+                    cat.y + cat.height - 8 > obs.y
+                ) {
+                    if (isInvincible || devGodMode) {
+                        obs.hit = true;
+                        score += 25;
+                        document.getElementById('score').innerText = score;
+                        obstacles.splice(i, 1);
+                        continue;
+                    } else {
+                        endGame();
+                    }
+                }
+
+                if (obs.x < -60) {
+                    obstacles.splice(i, 1);
+                    score += 10;
+                    document.getElementById('score').innerText = score;
+                }
+            }
+        }
+
+        function drawEnvironment() {
+            const w = canvas.width;
+            const h = canvas.height;
+
+            let currentBiome = 'mountains';
+            if (score >= 1200) {
+                currentBiome = 'village';
+                biomeLabel.innerText = "English Village 🏰";
+            } else if (score >= 700) {
+                currentBiome = 'snow';
+                biomeLabel.innerText = "Snowy Mountains ❄️";
+            } else if (score >= 300) {
+                currentBiome = 'desert';
+                biomeLabel.innerText = "Desert Dunes 🏜️";
+            } else {
+                currentBiome = 'mountains';
+                biomeLabel.innerText = "Night Mountains 🏔️";
+            }
+
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
+            if (currentBiome === 'village') {
+                skyGrad.addColorStop(0, '#1e293b');
+                skyGrad.addColorStop(0.6, '#334155');
+                skyGrad.addColorStop(1, '#475569');
+            } else if (currentBiome === 'snow') {
+                skyGrad.addColorStop(0, '#0c1021');
+                skyGrad.addColorStop(0.6, '#1e293b');
+                skyGrad.addColorStop(1, '#38bdf8');
+            } else if (currentBiome === 'desert') {
+                skyGrad.addColorStop(0, '#451a03');
+                skyGrad.addColorStop(0.6, '#7c2d12');
+                skyGrad.addColorStop(1, '#ea580c');
+            } else {
+                skyGrad.addColorStop(0, '#0f172a');
+                skyGrad.addColorStop(0.6, '#1e1b4b');
+                skyGrad.addColorStop(1, '#311042');
+            }
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, w, GROUND_Y);
+
+            if (currentBiome === 'desert') {
+                ctx.fillStyle = '#fde047';
+                ctx.beginPath();
+                ctx.arc(w - 90, 60, 24, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (currentBiome !== 'village') {
+                ctx.fillStyle = '#fef08a';
+                ctx.fillRect(w - 90, 45, 32, 32);
+            }
+
+            if (currentBiome === 'mountains' || currentBiome === 'snow') {
+                ctx.fillStyle = '#ffffff';
+                stars.forEach(s => {
+                    ctx.globalAlpha = s.alpha;
+                    ctx.fillRect(Math.floor(s.x), Math.floor(s.y), s.size, s.size);
+                });
+                ctx.globalAlpha = 1.0;
+            }
+
+            mountainOffset = (mountainOffset + gameSpeed * 0.2) % 1200;
+
+            if (currentBiome === 'village') {
+                ctx.fillStyle = '#1e293b';
+                for (let x = -240; x < w + 240; x += 120) {
+                    let vx = x - (mountainOffset % 120);
+                    ctx.fillRect(vx, GROUND_Y - 45, 50, 45);
+                    ctx.beginPath();
+                    ctx.moveTo(vx - 5, GROUND_Y - 45);
+                    ctx.lineTo(vx + 25, GROUND_Y - 75);
+                    ctx.lineTo(vx + 55, GROUND_Y - 45);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.fillRect(vx + 35, GROUND_Y - 78, 6, 15);
+                }
+            } else if (currentBiome === 'snow') {
+                ctx.fillStyle = '#1e293b';
+                for (let x = -400; x < w + 400; x += 200) {
+                    let mx = x - (mountainOffset % 200);
+                    ctx.beginPath();
+                    ctx.moveTo(mx, GROUND_Y);
+                    ctx.lineTo(mx + 60, GROUND_Y - 80);
+                    ctx.lineTo(mx + 100, GROUND_Y - 50);
+                    ctx.lineTo(mx + 150, GROUND_Y - 100);
+                    ctx.lineTo(mx + 200, GROUND_Y);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    ctx.fillStyle = '#f8fafc';
+                    ctx.beginPath();
+                    ctx.moveTo(mx + 45, GROUND_Y - 60);
+                    ctx.lineTo(mx + 60, GROUND_Y - 80);
+                    ctx.lineTo(mx + 75, GROUND_Y - 60);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    ctx.beginPath();
+                    ctx.moveTo(mx + 130, GROUND_Y - 70);
+                    ctx.lineTo(mx + 150, GROUND_Y - 100);
+                    ctx.lineTo(mx + 170, GROUND_Y - 70);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.fillStyle = '#1e293b';
+                }
+            } else if (currentBiome === 'desert') {
+                ctx.fillStyle = '#9a3412';
+                for (let x = -440; x < w + 440; x += 220) {
+                    let dx = x - (mountainOffset % 220);
+                    ctx.beginPath();
+                    ctx.arc(dx + 100, GROUND_Y + 40, 110, Math.PI, 0);
+                    ctx.fill();
+                }
+            } else {
+                ctx.fillStyle = '#1e1b4b';
+                for (let x = -400; x < w + 400; x += 200) {
+                    let mx = x - (mountainOffset % 200);
+                    ctx.beginPath();
+                    ctx.moveTo(mx, GROUND_Y);
+                    ctx.lineTo(mx + 60, GROUND_Y - 70);
+                    ctx.lineTo(mx + 100, GROUND_Y - 40);
+                    ctx.lineTo(mx + 150, GROUND_Y - 90);
+                    ctx.lineTo(mx + 200, GROUND_Y);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+
+            if (currentBiome === 'snow') {
+                ctx.fillStyle = '#ffffff';
+                snowFlakes.forEach(f => {
+                    f.y += f.speedY;
+                    f.x += f.speedX;
+                    if (f.y > window.innerHeight) f.y = -10;
+                    if (f.x > window.innerWidth) f.x = 0;
+                    if (f.x < 0) f.x = window.innerWidth;
+                    ctx.fillRect(Math.floor(f.x), Math.floor(f.y), f.size, f.size);
+                });
+            }
+
+            ctx.fillStyle = currentBiome === 'snow' ? '#e2e8f0' : (currentBiome === 'desert' ? '#c2410c' : '#101827');
+            ctx.fillRect(0, GROUND_Y, w, h - GROUND_Y);
+
+            ctx.fillStyle = currentBiome === 'snow' ? '#ffffff' : (currentBiome === 'desert' ? '#f97316' : '#22c55e');
+            ctx.fillRect(0, GROUND_Y, w, 5);
+
+            groundDecorationOffset = (groundDecorationOffset + gameSpeed) % 160;
+            for (let x = -160; x < w + 160; x += 160) {
+                let gx = x - groundDecorationOffset;
+                
+                if (currentBiome === 'village') {
+                    ctx.fillStyle = '#64748b';
+                    ctx.fillRect(gx + 50, GROUND_Y - 20, 3, 20);
+                    ctx.fillStyle = '#fde047';
+                    ctx.fillRect(gx + 48, GROUND_Y - 23, 7, 5);
+                } else if (currentBiome === 'snow') {
+                    ctx.fillStyle = '#0f766e';
+                    ctx.beginPath();
+                    ctx.moveTo(gx + 40, GROUND_Y);
+                    ctx.lineTo(gx + 48, GROUND_Y - 18);
+                    ctx.lineTo(gx + 56, GROUND_Y);
+                    ctx.closePath();
+                    ctx.fill();
+                } else if (currentBiome === 'desert') {
+                    ctx.fillStyle = '#15803d';
+                    ctx.fillRect(gx + 40, GROUND_Y - 14, 5, 14);
+                    ctx.fillRect(gx + 36, GROUND_Y - 10, 4, 5);
+                    ctx.fillRect(gx + 45, GROUND_Y - 8, 4, 5);
+                }
+            }
+        }
+
+        let lastTime = 0;
+        function gameLoop(timestamp) {
+            if (!isRunning) return;
+
+            if (!lastTime) lastTime = timestamp;
+            const deltaTime = timestamp - lastTime;
+            lastTime = timestamp;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawEnvironment();
+            cat.update();
+            cat.draw();
+            updateEntities(deltaTime);
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            if (!canRestart) return;
+            
+            isRunning = true;
+            score = 0;
+            gameSpeed = initialSpeed;
+            frameCount = 0;
+            obstacles = [];
+            butterflies = [];
+            
+            if (!devGodMode) {
+                isInvincible = false;
+                shieldTimer = 0;
+                shieldContainer.classList.add('hidden');
+            } else {
+                isInvincible = true;
+            }
+
+            cat.y = GROUND_Y - cat.height;
+            cat.vy = 0;
+            cat.isGrounded = true;
+
+            document.getElementById('score').innerText = '0';
+            overlay.classList.add('hidden');
+
+            lastTime = 0;
+            requestAnimationFrame(gameLoop);
+        }
+
+        function endGame() {
+            if (devGodMode) return;
+            
+            isRunning = false;
+            canRestart = false;
+            
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('cat_runner_high_score', highScore);
+                document.getElementById('high-score').innerText = highScore;
+            }
+
+            overlayIcon.innerText = '😿';
+            overlayTitle.innerText = 'GAME OVER';
+            overlaySubtitle.innerHTML = `You scored <b>${score}</b> points!<br>Tap 30x quickly anywhere on menu for God Mode!`;
+            
+            startBtn.innerText = 'WAIT...';
+            startBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            
+            overlay.classList.remove('hidden');
+
+            setTimeout(() => {
+                canRestart = true;
+                startBtn.innerText = 'TRY AGAIN';
+                startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }, 1800);
+        }
+
+        function handleJumpInput(e) {
+            if (e.target.closest('header')) return;
+
+            if (isRunning) {
+                cat.jump();
+            }
+        }
+
+        startBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (canRestart && !isRunning) {
+                startGame();
+            }
+        });
+
+        startBtn.addEventListener('touchstart', (e) => {
+            e.stopPropagation();
+            if (canRestart && !isRunning) {
+                startGame();
+            }
+        });
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === startBtn) return;
+            checkGlobalDevTap();
+        });
+
+        overlay.addEventListener('touchstart', (e) => {
+            if (e.target === startBtn) return;
+            checkGlobalDevTap();
+        }, { passive: true });
+
+        window.addEventListener('touchstart', (e) => {
+            handleJumpInput(e);
+        }, { passive: true });
+
+        window.addEventListener('mousedown', (e) => {
+            handleJumpInput(e);
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (isRunning) {
+                    cat.jump();
+                } else if (!overlay.classList.contains('hidden') && canRestart) {
+                    startGame();
+                }
+            }
+        });
+
+        window.onload = () => {
+            resizeCanvas();
+            canRestart = true;
+            lucide.createIcons();
+        };
+    </script>
+</body>
+</html>
