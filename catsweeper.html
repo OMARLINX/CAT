@@ -96,7 +96,7 @@
     <main class="flex-grow flex flex-col items-center justify-center p-4">
         
         <!-- Game Title with Click Easter Egg Trigger -->
-        <h2 id="secret-trigger" class="text-xl font-bold text-amber-400 tracking-wider mb-3 cursor-pointer text-center" style="text-shadow: 0 0 10px rgba(255, 202, 40, 0.3);">🐱 CAT SWEEPER</h2>
+        <h2 id="secret-trigger" class="text-xl font-bold text-amber-400 tracking-wider mb-3 cursor-pointer text-center active:scale-95 transition-transform" style="text-shadow: 0 0 10px rgba(255, 202, 40, 0.3);" title="Tap me...">🐱 CAT SWEEPER</h2>
 
         <!-- Top Records Bar -->
         <div class="bg-slate-900 border border-amber-500/40 rounded-xl p-3 w-[330px] mb-3 grid grid-cols-2 gap-2 text-xs">
@@ -151,8 +151,6 @@
         const SIZE = 8;
         const DOGS = 8;
         const MIN_TARGET = 5;
-        const EE_LEVEL_1 = 100;
-        const EE_LEVEL_2 = 1000;
 
         let board = [];
         let gameOver = false;
@@ -162,38 +160,42 @@
         const COMMON_CATS = ['🐱', '😸', '😺', '😻', '😼', '😽', '🐈'];
         const LEGENDARY_CATS = ['👑🐱', '✨🐈', '🌟😺', '💎🐱'];
 
-        let titleClicks = 0;
-        let clickTimer = null;
-        let currentStage = 1;
+        // Variáveis do Easter Egg de cliques no Título
+        let totalTitleClicks = parseInt(localStorage.getItem('cat_title_clicks') || '0', 10);
+        let stage1Triggered = localStorage.getItem('cat_ee_100_done') === 'true';
+        let stage2Triggered = localStorage.getItem('cat_ee_1000_done') === 'true';
 
         document.getElementById('secret-trigger').addEventListener('click', () => {
-            titleClicks++;
-            clearTimeout(clickTimer);
-            clickTimer = setTimeout(() => { titleClicks = 0; }, 2000);
+            totalTitleClicks++;
+            localStorage.setItem('cat_title_clicks', totalTitleClicks);
 
-            if (currentStage === 1 && titleClicks >= 3) {
-                currentStage = 2;
-                mostrarEasterEgg("🛑 STOP CLICKING!", "🤡", "Bro... clicks on a static title?<br><br><b>Don't you have anything better to do? Go save some actual cats! Blyat!</b>");
-            } else if (currentStage === 2 && titleClicks >= 4) {
-                currentStage = 1;
-                titleClicks = 0;
-                mostrarEasterEgg("🧠 ARE YOU OKAY?!", "💀", "UNBELIEVABLE!<br><br><b>This is psychiatric levels of obsession. Take a break, go touch grass! Cycle reset! Blyat!</b>");
+            // Se bateu 100 cliques e ainda não ativou a stage 1
+            if (totalTitleClicks >= 100 && !stage1Triggered) {
+                stage1Triggered = true;
+                localStorage.setItem('cat_ee_100_done', 'true');
+                mostrarEasterEgg("🛑 STOP CLICKING!", "🤡", "Blyat! You actually clicked 100 times on a static title?<br><br><b>Don't you have anything better to do? Go save some actual cats!</b>");
+            } 
+            // Se bateu 1000 cliques e ainda não ativou a stage 2
+            else if (totalTitleClicks >= 1000 && !stage2Triggered) {
+                stage2Triggered = true;
+                localStorage.setItem('cat_ee_1000_done', 'true');
+                mostrarEasterEgg("👑 SUPREME CLICKER OVERLORD!", "🧠💀", "UNBELIEVABLE!<br><br><b>This is psychiatric levels of obsession. You hit 1,000 clicks! Cycle resetting so you can do it all over again, you absolute madman!</b>");
+                
+                // Reseta o ciclo para permitir farmar de novo do zero
+                totalTitleClicks = 0;
+                stage1Triggered = false;
+                stage2Triggered = false;
+                localStorage.setItem('cat_title_clicks', '0');
+                localStorage.removeItem('cat_ee_100_done');
+                localStorage.removeItem('cat_ee_1000_done');
             }
         });
 
         function carregarRecords() {
-            const bestRun = localStorage.getItem('cat_sweeper_best_run') || 0;
-            const totalLifetime = localStorage.getItem('cat_sweeper_total_lifetime') || 0;
+            const bestRun = parseInt(localStorage.getItem('cat_sweeper_best_run') || '0', 10);
+            const totalLifetime = parseInt(localStorage.getItem('cat_sweeper_total_lifetime') || '0', 10);
             document.getElementById('rec-best').innerText = bestRun + ' 🐱';
             document.getElementById('rec-total').innerText = totalLifetime + ' 🐱';
-        }
-
-        function checarEasterEggs(totalAntigo, totalNovo) {
-            if (totalAntigo < EE_LEVEL_1 && totalNovo >= EE_LEVEL_1) {
-                mostrarEasterEgg("🐈 CAT WHISPERER UNLOCKED!", "😸", `Blyat! You reached ${EE_LEVEL_1} Total Saved Cats!<br><br><i>"In soviet app, cats don't find you. You find cats!"</i>`);
-            } else if (totalAntigo < EE_LEVEL_2 && totalNovo >= EE_LEVEL_2) {
-                mostrarEasterEgg("👑 SUPREME CAT OVERLORD!", "🦁✨", `UNBELIEVABLE! You reached ${EE_LEVEL_2} Total Saved Cats!<br><br><b>Cabeçudo approves your dedication. You are an absolute legend!</b>`);
-            }
         }
 
         function mostrarEasterEgg(titulo, icone, texto) {
@@ -205,7 +207,6 @@
 
         function fecharEasterEgg() {
             document.getElementById('easter-egg-modal').classList.add('hidden');
-            iniciarJogo();
         }
 
         function salvarProgresso(pontosResgatados) {
@@ -217,7 +218,6 @@
             localStorage.setItem('cat_sweeper_total_lifetime', novoTotal);
 
             carregarRecords();
-            checarEasterEggs(currentTotal, novoTotal);
         }
 
         function iniciarJogo() {
