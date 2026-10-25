@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cat Sweeper Arcade</title>
+    <title>Exclusive Gallery</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -16,346 +16,356 @@
             background-color: #0f172a;
             color: #f8fafc;
         }
-        .cat-game-body {
-            font-family: 'Courier New', Courier, monospace;
+        .gallery-card {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .cell {
-            width: 36px;
-            height: 36px;
-            background-color: #2a2a2a;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            cursor: pointer;
-            border: 1px solid #3c3c3c;
-            transition: transform 0.1s, background-color 0.1s;
-            user-select: none;
+        .gallery-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
         }
-        .cell:hover {
-            background-color: #383838;
-            transform: scale(1.05);
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
         }
-        .cell.revealed {
-            background-color: #121212;
-            border-color: #222;
-            cursor: default;
-            transform: none;
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
         }
-        .cell.legendary {
-            background-color: rgba(255, 215, 0, 0.2);
-            border-color: #ffd700;
-            animation: pulse-gold 1s infinite alternate;
-        }
-        @keyframes pulse-gold {
-            0% { transform: scale(1); box-shadow: 0 0 2px #ffd700; }
-            100% { transform: scale(1.1); box-shadow: 0 0 10px #ffd700; }
-        }
-        .cell.dog {
-            background-color: #d32f2f !important;
-            animation: shake 0.3s;
-        }
-        @keyframes shake {
-            0% { transform: translate(1px, 1px) rotate(0deg); }
-            20% { transform: translate(-3px, 0px) rotate(1deg); }
-            40% { transform: translate(1px, -1px) rotate(-1deg); }
-            60% { transform: translate(-1px, 1px) rotate(0deg); }
-            100% { transform: translate(1px, -2px) rotate(-1deg); }
-        }
-        @keyframes popIn {
-            0% { transform: scale(0.5); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        .overlay-box {
-            animation: popIn 0.3s ease-out;
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between cat-game-container selection:bg-amber-500 selection:text-slate-950">
+<body class="min-h-screen flex flex-col justify-between selection:bg-indigo-500 selection:text-white custom-scrollbar">
 
-    <!-- Header / Navbar com Botão de Voltar para o App -->
-    <header class="sticky top-0 z-30 bg-slate-900/80 backdrop-blur-md border-b border-slate-800">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+    <!-- Header / Navbar -->
+    <header class="sticky top-0 z-30 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 transition-all">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
             <div class="flex items-center space-x-3">
-                <button onclick="window.location.href='index.html'" class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-700 transition" title="Back to Gallery">
-                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                <!-- Botão Hambúrguer -->
+                <button onclick="toggleMenu()" class="p-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-700/60 transition" title="Open Menu">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
                 </button>
-                <div class="p-2.5 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
-                    <i data-lucide="gamepad-2" class="w-6 h-6"></i>
+
+                <div class="p-2.5 bg-indigo-600/20 text-indigo-400 rounded-xl border border-indigo-500/30">
+                    <i data-lucide="cat" class="w-6 h-6"></i>
                 </div>
                 <div>
-                    <h1 class="text-lg font-bold text-white tracking-tight">Cat Sweeper Arcade</h1>
-                    <p class="text-xs text-slate-400">Mini-game Module</p>
+                    <h1 class="text-xl font-bold text-white tracking-tight">Exclusive Gallery</h1>
+                    <p class="text-xs text-slate-400">Private Photo Collection</p>
                 </div>
+            </div>
+
+            <!-- Stats Badge -->
+            <div class="flex items-center bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700/60 text-xs text-slate-300 space-x-2">
+                <i data-lucide="image" class="w-4 h-4 text-indigo-400"></i>
+                <span id="photo-count" class="font-medium text-white">4 Photos</span>
             </div>
         </div>
     </header>
 
-    <!-- Main Game Content -->
-    <main class="flex-grow flex flex-col items-center justify-center p-4">
-        
-        <!-- Game Title with Click Easter Egg Trigger -->
-        <h2 id="secret-trigger" class="text-xl font-bold text-amber-400 tracking-wider mb-3 cursor-pointer text-center" style="text-shadow: 0 0 10px rgba(255, 202, 40, 0.3);">🐱 CAT SWEEPER</h2>
-
-        <!-- Top Records Bar -->
-        <div class="bg-slate-900 border border-amber-500/40 rounded-xl p-3 w-[330px] mb-3 grid grid-cols-2 gap-2 text-xs">
-            <div class="flex flex-col items-center bg-slate-950 p-2 rounded-lg border border-slate-800">
-                <span class="text-slate-400 text-[10px] uppercase">Best Run</span>
-                <strong id="rec-best" class="text-amber-400 text-sm mt-0.5">0 🐱</strong>
+    <!-- MENU LATERAL / GAVETA (Sidebar) -->
+    <div id="menu-backdrop" onclick="toggleMenu()" class="fixed inset-0 z-40 bg-slate-950/80 backdrop-blur-sm hidden transition-opacity"></div>
+    <div id="side-menu" class="fixed top-0 left-0 bottom-0 z-50 w-72 bg-slate-900 border-r border-slate-800 p-6 flex flex-col justify-between transform -translate-x-full transition-transform duration-300 ease-in-out shadow-2xl">
+        <div>
+            <div class="flex items-center justify-between pb-6 border-b border-slate-800">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 bg-indigo-600/20 text-indigo-400 rounded-lg border border-indigo-500/30">
+                        <i data-lucide="compass" class="w-5 h-5"></i>
+                    </div>
+                    <span class="font-bold text-lg text-white">Navigation</span>
+                </div>
+                <button onclick="toggleMenu()" class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
             </div>
-            <div class="flex flex-col items-center bg-slate-950 p-2 rounded-lg border border-slate-800">
-                <span class="text-slate-400 text-[10px] uppercase">Total Saved</span>
-                <strong id="rec-total" class="text-amber-400 text-sm mt-0.5">0 🐱</strong>
+
+            <nav class="mt-6 space-y-2">
+                <button onclick="toggleMenu()" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/80 transition font-medium text-sm">
+                    <i data-lucide="image" class="w-5 h-5 text-indigo-400"></i>
+                    <span>Gallery View</span>
+                </button>
+                <button onclick="openCatGame()" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800/80 transition font-medium text-sm">
+                    <i data-lucide="gamepad-2" class="w-5 h-5 text-amber-400"></i>
+                    <span>Cat Sweeper Arcade</span>
+                </button>
+            </nav>
+        </div>
+        <div class="pt-6 border-t border-slate-800 text-xs text-slate-500 text-center">
+            <p>Kabisapp Menu v2.6</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
+        <!-- Gallery Header Title & Filters -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div>
+                <h2 class="text-2xl font-bold text-slate-100">Registered Photos</h2>
+                <p class="text-slate-400 text-sm mt-1">Click on any photo to view in high resolution.</p>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <button onclick="toggleLayout('grid')" id="btn-grid" class="p-2 bg-indigo-600 text-white rounded-lg transition hover:bg-indigo-500 shadow-lg shadow-indigo-600/20" title="Grid view">
+                    <i data-lucide="grid" class="w-5 h-5"></i>
+                </button>
+                <button onclick="toggleLayout('large')" id="btn-large" class="p-2 bg-slate-800 text-slate-400 hover:text-white rounded-lg transition hover:bg-slate-700" title="Large grid view">
+                    <i data-lucide="layout-grid" class="w-5 h-5"></i>
+                </button>
             </div>
         </div>
 
-        <!-- Current Match Panel -->
-        <div class="flex justify-between items-center w-[330px] mb-3 bg-slate-900 p-3 rounded-xl border border-slate-800 text-xs">
-            <div>Cats: <strong id="cat-count" class="text-emerald-400">0</strong></div>
-            <div>Target: <strong id="target-count" class="text-amber-400">5</strong></div>
-            <div>Dogs: <strong id="dog-count" class="text-rose-400">8</strong></div>
-        </div>
-
-        <!-- The Grid 8x8 -->
-        <div id="grid" class="grid grid-cols-8 gap-1.5 bg-slate-900 p-3.5 rounded-xl border border-slate-800 shadow-2xl"></div>
-
-        <!-- Status Messages -->
-        <div id="mensagem" class="mt-3 text-xs h-6 font-bold text-center"></div>
-
-        <!-- Action Control (Stop & Save) -->
-        <div class="mt-3 w-[330px]">
-            <button id="btn-claim" class="w-full py-3.5 bg-emerald-400 text-slate-950 rounded-lg font-bold text-sm transition hover:bg-emerald-300 disabled:bg-slate-800 disabled:text-slate-600 disabled:border disabled:border-slate-700 disabled:cursor-not-allowed" onclick="resgatarPontos()" disabled>
-                COLLECT (0 🐱)
-            </button>
+        <!-- Photo Grid Container -->
+        <div id="gallery-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Dynamic cards will be rendered here -->
         </div>
     </main>
 
-    <!-- Easter Egg Pop-up Modal -->
-    <div id="easter-egg-modal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md hidden flex flex-col justify-center items-center text-center p-4">
-        <div class="overlay-box bg-slate-900 border-2 border-amber-400 p-6 rounded-2xl shadow-2xl max-w-xs w-full">
-            <h3 id="ee-title" class="text-amber-400 text-lg font-bold mb-2">🐱 EASTER EGG!</h3>
-            <div id="ee-icon" class="text-5xl my-2">👑</div>
-            <p id="ee-text" class="text-slate-300 text-xs leading-relaxed my-3"></p>
-            <button onclick="fecharEasterEgg()" class="w-full py-2.5 bg-amber-400 text-slate-950 font-bold rounded-xl mt-3 text-xs hover:bg-amber-300 transition">CONTINUE GAME</button>
+    <!-- Lightbox Modal -->
+    <div id="lightbox" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl hidden flex-col justify-between transition-opacity duration-300 opacity-0">
+        <!-- Lightbox Header -->
+        <div class="p-4 flex items-center justify-between bg-slate-900/50 border-b border-slate-800/50">
+            <div class="flex items-center space-x-3">
+                <span id="lightbox-index" class="text-xs font-mono bg-slate-800 text-indigo-400 px-2.5 py-1 rounded-md border border-slate-700">1 / 4</span>
+                <span id="lightbox-title" class="text-sm font-medium text-slate-200 truncate max-w-xs sm:max-w-md">Photo</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="zoomImage()" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition" title="Zoom">
+                    <i data-lucide="zoom-in" class="w-5 h-5"></i>
+                </button>
+                <button onclick="closeLightbox()" class="p-2 text-slate-400 hover:text-white hover:bg-rose-500/20 hover:text-rose-400 rounded-lg transition" title="Close (Esc)">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Lightbox Body -->
+        <div class="relative flex-1 flex items-center justify-center p-4 sm:p-8 overflow-hidden">
+            <!-- Navigation Buttons -->
+            <button onclick="prevImage()" class="absolute left-4 z-10 p-3 text-white bg-slate-900/60 hover:bg-indigo-600 rounded-full border border-slate-700/50 backdrop-blur-md transition-all transform hover:scale-105 shadow-xl" title="Previous photo">
+                <i data-lucide="chevron-left" class="w-6 h-6"></i>
+            </button>
+
+            <!-- Image Container -->
+            <div class="relative max-w-full max-h-full flex items-center justify-center overflow-hidden rounded-xl">
+                <img id="lightbox-img" src="" alt="" class="max-h-[80vh] max-w-full object-contain rounded-lg transition-transform duration-300 ease-out shadow-2xl">
+            </div>
+
+            <button onclick="nextImage()" class="absolute right-4 z-10 p-3 text-white bg-slate-900/60 hover:bg-indigo-600 rounded-full border border-slate-700/50 backdrop-blur-md transition-all transform hover:scale-105 shadow-xl" title="Next photo">
+                <i data-lucide="chevron-right" class="w-6 h-6"></i>
+            </button>
+        </div>
+
+        <!-- Lightbox Footer / Caption -->
+        <div class="p-4 bg-slate-900/50 border-t border-slate-800/50 text-center">
+            <p id="lightbox-desc" class="text-sm text-slate-300 max-w-2xl mx-auto"></p>
         </div>
     </div>
 
     <!-- Footer -->
-    <footer class="bg-slate-900 border-t border-slate-800 py-4 text-center text-xs text-slate-500">
-        <p>Cat Sweeper Arcade • Independent Module</p>
+    <footer class="bg-slate-900 border-t border-slate-800 py-6 mt-12">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
+            <p>Custom Gallery Web App • Dynamically updated with your photos</p>
+        </div>
     </footer>
 
-    <!-- Game Logic -->
+    <!-- JavaScript Application Logic -->
     <script>
-        const SIZE = 8;
-        const DOGS = 8;
-        const MIN_TARGET = 5;
-        const EE_LEVEL_1 = 100;
-        const EE_LEVEL_2 = 1000;
-
-        let board = [];
-        let gameOver = false;
-        let catsFound = 0;
-        let legendaryFound = 0;
-
-        const COMMON_CATS = ['🐱', '😸', '😺', '😻', '😼', '😽', '🐈'];
-        const LEGENDARY_CATS = ['👑🐱', '✨🐈', '🌟😺', '💎🐱'];
-
-        let titleClicks = 0;
-        let clickTimer = null;
-        let currentStage = 1;
-
-        document.getElementById('secret-trigger').addEventListener('click', () => {
-            titleClicks++;
-            clearTimeout(clickTimer);
-            clickTimer = setTimeout(() => { titleClicks = 0; }, 2000);
-
-            if (currentStage === 1 && titleClicks >= 3) {
-                currentStage = 2;
-                mostrarEasterEgg("🛑 STOP CLICKING!", "🤡", "Bro... clicks on a static title?<br><br><b>Don't you have anything better to do? Go save some actual cats! Blyat!</b>");
-            } else if (currentStage === 2 && titleClicks >= 4) {
-                currentStage = 1;
-                titleClicks = 0;
-                mostrarEasterEgg("🧠 ARE YOU OKAY?!", "💀", "UNBELIEVABLE!<br><br><b>This is psychiatric levels of obsession. Take a break, go touch grass! Cycle reset! Blyat!</b>");
+        // Array containing uploaded photos data with exact InShot filenames
+        const photos = [
+            {
+                id: 1,
+                url: 'InShot_20261025_140859693.jpg',
+                title: 'Thoughtful Kitten',
+                description: 'Striped kitten sitting on the rug with a curious and attentive expression.',
+                date: 'Recent'
+            },
+            {
+                id: 2,
+                url: 'InShot_20261025_140816368.jpg',
+                title: 'Charming Meow',
+                description: 'Tiny kitten meowing on top of the orange surface.',
+                date: 'Recent'
+            },
+            {
+                id: 3,
+                url: 'InShot_20261025_140741534.jpg',
+                title: 'Close-Up Portrait',
+                description: 'Beautiful close-up shot of the kitten looking directly at the camera with striking eyes.',
+                date: 'Recent'
+            },
+            {
+                id: 4,
+                url: 'InShot_20261025_140712984.jpg',
+                title: 'Walk in the Grass',
+                description: 'Kitten cheerfully walking across the green lawn.',
+                date: 'Recent'
             }
+        ];
+
+        let currentIndex = 0;
+        let isZoomed = false;
+
+        // DOM Elements
+        const galleryGrid = document.getElementById('gallery-grid');
+        const photoCount = document.getElementById('photo-count');
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightbox-img');
+        const lightboxTitle = document.getElementById('lightbox-title');
+        const lightboxDesc = document.getElementById('lightbox-desc');
+        const lightboxIndex = document.getElementById('lightbox-index');
+
+        // Render gallery photos
+        function renderGallery() {
+            galleryGrid.innerHTML = '';
+            photoCount.textContent = `${photos.length} Photos`;
+
+            photos.forEach((photo, index) => {
+                const card = document.createElement('div');
+                card.className = 'gallery-card bg-slate-800/70 border border-slate-700/50 rounded-2xl overflow-hidden cursor-pointer group flex flex-col justify-between';
+                card.onclick = () => openLightbox(index);
+
+                card.innerHTML = `
+                    <div class="relative aspect-square overflow-hidden bg-slate-900">
+                        <img 
+                            src="${photo.url}" 
+                            alt="${photo.title}" 
+                            class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            loading="lazy"
+                            onerror="this.src='https://placehold.co/600x600/1e293b/f8fafc?text=Photo+Error'"
+                        />
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                            <span class="inline-flex items-center text-xs text-indigo-300 font-medium bg-indigo-950/80 border border-indigo-800/50 px-2.5 py-1 rounded-full">
+                                <i data-lucide="maximize-2" class="w-3 h-3 mr-1"></i> Expand
+                            </span>
+                        </div>
+                    </div>
+                    <div class="p-4 flex flex-col justify-between flex-grow">
+                        <div>
+                            <h3 class="font-semibold text-slate-100 group-hover:text-indigo-400 transition-colors">${photo.title}</h3>
+                            <p class="text-xs text-slate-400 mt-1 line-clamp-2">${photo.description}</p>
+                        </div>
+                        <div class="mt-3 pt-2 border-t border-slate-700/40 flex justify-between items-center text-[10px] text-slate-500">
+                            <span>Exclusive</span>
+                            <span>${photo.date}</span>
+                        </div>
+                    </div>
+                `;
+                galleryGrid.appendChild(card);
+            });
+
+            lucide.createIcons();
+        }
+
+        // Função do Menu Lateral Hambúrguer
+        function toggleMenu() {
+            const menu = document.getElementById('side-menu');
+            const backdrop = document.getElementById('menu-backdrop');
+            const isOpen = menu.classList.contains('translate-x-0');
+
+            if (isOpen) {
+                menu.classList.remove('translate-x-0');
+                menu.classList.add('-translate-x-full');
+                backdrop.classList.add('hidden');
+            } else {
+                menu.classList.remove('-translate-x-full');
+                menu.classList.add('translate-x-0');
+                backdrop.classList.remove('hidden');
+            }
+        }
+
+        // Redireciona para o arquivo separado do Cat Sweeper
+        function openCatGame() {
+            toggleMenu();
+            window.location.href = 'catsweeper.html';
+        }
+
+        // Open Lightbox
+        function openLightbox(index) {
+            currentIndex = index;
+            updateLightboxContent();
+            lightbox.classList.remove('hidden');
+            setTimeout(() => {
+                lightbox.classList.remove('opacity-0');
+            }, 10);
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Close Lightbox
+        function closeLightbox() {
+            lightbox.classList.add('opacity-0');
+            setTimeout(() => {
+                lightbox.classList.add('hidden');
+                resetZoom();
+            }, 300);
+            document.body.style.overflow = 'auto';
+        }
+
+        // Update Lightbox Content
+        function updateLightboxContent() {
+            const photo = photos[currentIndex];
+            lightboxImg.src = photo.url;
+            lightboxTitle.textContent = photo.title;
+            lightboxDesc.textContent = photo.description;
+            lightboxIndex.textContent = `${currentIndex + 1} / ${photos.length}`;
+            resetZoom();
+        }
+
+        // Lightbox Navigation
+        function nextImage() {
+            currentIndex = (currentIndex + 1) % photos.length;
+            updateLightboxContent();
+        }
+
+        function prevImage() {
+            currentIndex = (currentIndex - 1 + photos.length) % photos.length;
+            updateLightboxContent();
+        }
+
+        // Zoom Function
+        function zoomImage() {
+            isZoomed = !isZoomed;
+            if (isZoomed) {
+                lightboxImg.style.transform = 'scale(1.7)';
+                lightboxImg.style.cursor = 'zoom-out';
+            } else {
+                resetZoom();
+            }
+        }
+
+        function resetZoom() {
+            isZoomed = false;
+            lightboxImg.style.transform = 'scale(1)';
+            lightboxImg.style.cursor = 'zoom-in';
+        }
+
+        // Toggle Grid Layout
+        function toggleLayout(type) {
+            const btnGrid = document.getElementById('btn-grid');
+            const btnLarge = document.getElementById('btn-large');
+
+            if (type === 'large') {
+                galleryGrid.className = 'grid grid-cols-1 sm:grid-cols-2 gap-8';
+                btnLarge.className = 'p-2 bg-indigo-600 text-white rounded-lg transition shadow-lg shadow-indigo-600/20';
+                btnGrid.className = 'p-2 bg-slate-800 text-slate-400 hover:text-white rounded-lg transition hover:bg-slate-700';
+            } else {
+                galleryGrid.className = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6';
+                btnGrid.className = 'p-2 bg-indigo-600 text-white rounded-lg transition shadow-lg shadow-indigo-600/20';
+                btnLarge.className = 'p-2 bg-slate-800 text-slate-400 hover:text-white rounded-lg transition hover:bg-slate-700';
+            }
+        }
+
+        // Keyboard Shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (lightbox.classList.contains('hidden')) return;
+            
+            if (e.key === 'Escape') closeLightbox();
+            if (e.key === 'ArrowRight') nextImage();
+            if (e.key === 'ArrowLeft') prevImage();
         });
 
-        function carregarRecords() {
-            const bestRun = localStorage.getItem('cat_sweeper_best_run') || 0;
-            const totalLifetime = localStorage.getItem('cat_sweeper_total_lifetime') || 0;
-            document.getElementById('rec-best').innerText = bestRun + ' 🐱';
-            document.getElementById('rec-total').innerText = totalLifetime + ' 🐱';
-        }
-
-        function checarEasterEggs(totalAntigo, totalNovo) {
-            if (totalAntigo < EE_LEVEL_1 && totalNovo >= EE_LEVEL_1) {
-                mostrarEasterEgg("🐈 CAT WHISPERER UNLOCKED!", "😸", `Blyat! You reached ${EE_LEVEL_1} Total Saved Cats!<br><br><i>"In soviet app, cats don't find you. You find cats!"</i>`);
-            } else if (totalAntigo < EE_LEVEL_2 && totalNovo >= EE_LEVEL_2) {
-                mostrarEasterEgg("👑 SUPREME CAT OVERLORD!", "🦁✨", `UNBELIEVABLE! You reached ${EE_LEVEL_2} Total Saved Cats!<br><br><b>Cabeçudo approves your dedication. You are an absolute legend!</b>`);
-            }
-        }
-
-        function mostrarEasterEgg(titulo, icone, texto) {
-            document.getElementById('ee-title').innerText = titulo;
-            document.getElementById('ee-icon').innerHTML = icone;
-            document.getElementById('ee-text').innerHTML = texto;
-            document.getElementById('easter-egg-modal').classList.remove('hidden');
-        }
-
-        function fecharEasterEgg() {
-            document.getElementById('easter-egg-modal').classList.add('hidden');
-            iniciarJogo();
-        }
-
-        function salvarProgresso(pontosResgatados) {
-            const currentBestRun = parseInt(localStorage.getItem('cat_sweeper_best_run') || '0', 10);
-            if (pontosResgatados > currentBestRun) localStorage.setItem('cat_sweeper_best_run', pontosResgatados);
-
-            const currentTotal = parseInt(localStorage.getItem('cat_sweeper_total_lifetime') || '0', 10);
-            const novoTotal = currentTotal + pontosResgatados;
-            localStorage.setItem('cat_sweeper_total_lifetime', novoTotal);
-
-            carregarRecords();
-            checarEasterEggs(currentTotal, novoTotal);
-        }
-
-        function iniciarJogo() {
-            const grid = document.getElementById('grid');
-            const msg = document.getElementById('mensagem');
-
-            grid.innerHTML = '';
-            msg.innerText = 'Find at least 5 cats before stopping!';
-            msg.className = 'mt-3 text-xs h-6 font-bold text-center text-amber-400';
-            
-            gameOver = false;
-            catsFound = 0;
-            legendaryFound = 0;
-            
-            document.getElementById('dog-count').innerText = DOGS;
-            atualizarPainel();
-
-            board = [];
-            for (let r = 0; r < SIZE; r++) {
-                board[r] = [];
-                for (let c = 0; c < SIZE; c++) {
-                    board[r][c] = { isDog: false, isLegendary: false, revealed: false, element: null };
-                }
-            }
-
-            let dogsPlaced = 0;
-            while (dogsPlaced < DOGS) {
-                let r = Math.floor(Math.random() * SIZE);
-                let c = Math.floor(Math.random() * SIZE);
-                if (!board[r][c].isDog) { board[r][c].isDog = true; dogsPlaced++; }
-            }
-
-            let legendariesPlaced = 0;
-            while (legendariesPlaced < 3) {
-                let r = Math.floor(Math.random() * SIZE);
-                let c = Math.floor(Math.random() * SIZE);
-                if (!board[r][c].isDog && !board[r][c].isLegendary) { board[r][c].isLegendary = true; legendariesPlaced++; }
-            }
-
-            for (let r = 0; r < SIZE; r++) {
-                for (let c = 0; c < SIZE; c++) {
-                    const cellEl = document.createElement('div');
-                    cellEl.classList.add('cell');
-                    cellEl.addEventListener('click', () => clicarCelula(r, c));
-                    board[r][c].element = cellEl;
-                    grid.appendChild(cellEl);
-                }
-            }
-            carregarRecords();
-        }
-
-        function clicarCelula(r, c) {
-            if (gameOver || board[r][c].revealed) return;
-
-            const cell = board[r][c];
-            cell.revealed = true;
-            cell.element.classList.add('revealed');
-
-            if (cell.isDog) {
-                cell.element.classList.add('dog');
-                cell.element.innerText = '🐕';
-                gameOver = true;
-                revelarCachorros();
-
-                const msg = document.getElementById('mensagem');
-                msg.innerText = 'Блять! A dog got you! Restarting in 2s...';
-                msg.className = 'mt-3 text-xs h-6 font-bold text-center text-rose-400';
-                document.getElementById('btn-claim').disabled = true;
-
-                setTimeout(() => {
-                    if (document.getElementById('easter-egg-modal').classList.contains('hidden')) {
-                        iniciarJogo();
-                    }
-                }, 2000);
-                return;
-            }
-
-            if (cell.isLegendary) {
-                const rareCat = LEGENDARY_CATS[Math.floor(Math.random() * LEGENDARY_CATS.length)];
-                cell.element.innerText = rareCat;
-                cell.element.classList.add('legendary');
-                catsFound += 2;
-                legendaryFound++;
-            } else {
-                const commonCat = COMMON_CATS[Math.floor(Math.random() * COMMON_CATS.length)];
-                cell.element.innerText = commonCat;
-                catsFound++;
-            }
-            atualizarPainel();
-        }
-
-        function atualizarPainel() {
-            document.getElementById('cat-count').innerText = catsFound;
-            const btnClaim = document.getElementById('btn-claim');
-            const msg = document.getElementById('mensagem');
-
-            if (catsFound >= MIN_TARGET && !gameOver) {
-                msg.innerText = `Target reached! Collect & Stop anytime!`;
-                msg.className = 'mt-3 text-xs h-6 font-bold text-center text-emerald-400';
-                btnClaim.disabled = false;
-                btnClaim.innerText = `STOP & SAVE (${catsFound} 🐱)`;
-            } else if (!gameOver) {
-                btnClaim.disabled = true;
-                btnClaim.innerText = `COLLECT (${catsFound}/${MIN_TARGET} 🐱)`;
-            }
-        }
-
-        function resgatarPontos() {
-            if (catsFound < MIN_TARGET || gameOver) return;
-            gameOver = true;
-            salvarProgresso(catsFound);
-
-            const msg = document.getElementById('mensagem');
-            msg.innerText = `🎉 Saved ${catsFound} cats! Starting new match in 2s...`;
-            msg.className = 'mt-3 text-xs h-6 font-bold text-center text-emerald-400';
-            document.getElementById('btn-claim').disabled = true;
-            revelarCachorros();
-
-            setTimeout(() => {
-                if (document.getElementById('easter-egg-modal').classList.contains('hidden')) {
-                    iniciarJogo();
-                }
-            }, 2000);
-        }
-
-        function revelarCachorros() {
-            for (let r = 0; r < SIZE; r++) {
-                for (let c = 0; c < SIZE; c++) {
-                    if (board[r][c].isDog) {
-                        board[r][c].element.classList.add('cell', 'revealed', 'dog');
-                        board[r][c].element.innerText = '🐕';
-                    }
-                }
-            }
-        }
-
+        // Initialize Application
         window.onload = () => {
-            iniciarJogo();
+            renderGallery();
             lucide.createIcons();
         };
     </script>
